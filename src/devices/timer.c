@@ -23,7 +23,7 @@ static int64_t ticks;
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
 static unsigned loops_per_tick;
-
+struct sema *sema_ticks;
 static intr_handler_func timer_interrupt;
 static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
@@ -91,7 +91,12 @@ void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();
-
+  sema_init(sema_ticks, ticks);
+  struct thread *t = thread_current ();
+  
+  list_remove(&t->elem);
+  //wait
+  list_insert(&t->elem);
   ASSERT (intr_get_level () == INTR_ON);
   //while (timer_elapsed (start) < ticks) 
   //take it off
