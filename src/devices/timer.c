@@ -23,7 +23,10 @@ static int64_t ticks;
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
 static unsigned loops_per_tick;
-struct sema *sema_ticks;
+struct semaphore sema_ticks;
+struct semaphore sema_sleep;
+struct lock loock;
+int check=0;
 static intr_handler_func timer_interrupt;
 static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
@@ -37,7 +40,10 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
-}
+  sema_init (&sema_ticks, ticks);
+  sema_init (&sema_sleep, 0);
+  lock_init(&loock);
+ }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
 void
@@ -91,19 +97,14 @@ void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();
-  sema_init(sema_ticks, ticks);
-  struct thread *t = thread_current ();
-  
-  list_remove(&t->elem);
-  //wait
-  list_insert(&t->elem);
+  lock_acquire(&loock);
   ASSERT (intr_get_level () == INTR_ON);
-  //while (timer_elapsed (start) < ticks) 
-  //take it off
-  //lock
-  //do something
-  //unlock
-  thread_yield ();
+  printf("Timer yolo\n");
+  sema_ticks.value=ticks;
+  printf("Ticks be like: %d\n",sema_ticks.value);
+  sema_down (&sema_sleep);
+  printf("Yolo Swaggins\n\n\n");
+  lock_release(&loock);
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -130,13 +131,7 @@ timer_nsleep (int64_t ns)
   real_time_sleep (ns, 1000 * 1000 * 1000);
 }
 
-/* Busy-waits for approximately MS milliseconds.  Interrupts need
-   not be turned on.
-
-   Busy waiting wastes CPU cycles, and busy waiting with
-   interrupts off for the interval between timer ticks or longer
-   will cause timer ticks to be lost.  Thus, use timer_msleep()
-   instead if interrupts are enabled. */
+/* Busy-waits for approximate enabled. */
 void
 timer_mdelay (int64_t ms) 
 {
@@ -181,6 +176,13 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
+  if(!sema_try_down(&sema_ticks)&&sema_sleep.value==0){
+    printf("Done Yolo\n");
+    sema_up(&sema_sleep);
+
+  }
+  //if(check)
+    //printf("Sleep: %d\nTick: %d\n",sema_sleep.value,sema_ticks.value);
   thread_tick ();
 }
 
