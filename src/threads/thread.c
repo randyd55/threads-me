@@ -498,6 +498,10 @@ next_thread_to_run (void)
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
 }
 
+int thread_list_less(struct thread *a, struct thread *b)
+{
+  return a->priority - b->priority;
+}
 /* Completes a thread switch by activating the new thread's page
    tables, and, if the previous thread is dying, destroying it.
 
