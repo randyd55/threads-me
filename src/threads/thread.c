@@ -9,7 +9,6 @@
 #include "threads/intr-stubs.h"
 #include "threads/palloc.h"
 #include "threads/switch.h"
-#include "threads/synch.h"
 #include "threads/vaddr.h"
 #ifdef USERPROG
 #include "userprog/process.h"
@@ -497,7 +496,7 @@ next_thread_to_run (void)
   else
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
 }
-
+//Fix this to take in list elements
 int thread_list_less(struct thread *a, struct thread *b)
 {
   return a->priority - b->priority;

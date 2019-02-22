@@ -23,9 +23,7 @@ static int64_t ticks;
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
 static unsigned loops_per_tick;
-struct semaphore sema_ticks;
-struct semaphore sema_sleep;
-struct lock loock;
+struct list sleep_list;
 int check=0;
 static intr_handler_func timer_interrupt;
 static bool too_many_loops (unsigned loops);
@@ -40,9 +38,7 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
-  sema_init (&sema_ticks, ticks);
-  sema_init (&sema_sleep, 0);
-  lock_init(&loock);
+  list_init(&sleep_list);
  }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -96,15 +92,23 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
-  int64_t start = timer_ticks ();
-  lock_acquire(&loock);
   ASSERT (intr_get_level () == INTR_ON);
-  printf("Timer yolo\n");
-  sema_ticks.value=ticks;
-  printf("Ticks be like: %d\n",sema_ticks.value);
-  sema_down (&sema_sleep);
-  printf("Yolo Swaggins\n\n\n");
-  lock_release(&loock);
+  struct thread *t = thread_current ();
+  t->ticks = timer_ticks () + ticks;
+  enum intr_level old_level;
+  sema_init(&(t->sema_sleep), 0);
+  
+  old_level = intr_disable ();
+  list_push_front(&sleep_list, &(t->sleep_elem));
+  intr_set_level (old_level);
+
+  sema_down(&(t->sema_sleep));
+
+  old_level = intr_disable ();
+  list_remove(&(t->sleep_elem));
+  intr_set_level (old_level);
+
+  
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -172,17 +176,33 @@ timer_print_stats (void)
 }
 
 /* Timer interrupt handler. */
+//if it doesn't work, disable interrupts
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
-  if(!sema_try_down(&sema_ticks)&&sema_sleep.value==0){
-    printf("Done Yolo\n");
-    sema_up(&sema_sleep);
 
+  struct list_elem *e;
+
+  ASSERT (intr_get_level () == INTR_OFF);
+
+  for (e = list_begin (&sleep_list); e != list_end (&sleep_list);
+       e = list_next (e))
+  {
+      struct thread *t = list_entry (e, struct thread, sleep_elem);
+      if(t -> ticks >= ticks){
+        sema_up(&(t->sema_sleep));  
+      }
   }
-  //if(check)
-    //printf("Sleep: %d\nTick: %d\n",sema_sleep.value,sema_ticks.value);
+
+ //  while(!is_tail(node)){
+ //  	//stuff
+	// struct thread *t = list_entry (node, struct thread, sleep_elem);
+	// if(t -> ticks >= ticks){
+	// 	sema_up(&(t->sema_sleep));	
+	// }
+	// node = list_next(node);
+ //  }
   thread_tick ();
 }
 
