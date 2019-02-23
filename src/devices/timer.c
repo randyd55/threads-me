@@ -94,9 +94,13 @@ timer_sleep (int64_t ticks)
 {
   ASSERT (intr_get_level () == INTR_ON);
   struct thread *t = thread_current ();
+  if(ticks <= 0)
+  {
+    return;
+  }
   t->ticks = timer_ticks () + ticks;
-  enum intr_level old_level;
   sema_init(&(t->sema_sleep), 0);
+  enum intr_level old_level;
   
   old_level = intr_disable ();
   list_push_front(&sleep_list, &(t->sleep_elem));
@@ -185,12 +189,13 @@ timer_interrupt (struct intr_frame *args UNUSED)
   struct list_elem *e;
 
   ASSERT (intr_get_level () == INTR_OFF);
-
+  
   for (e = list_begin (&sleep_list); e != list_end (&sleep_list);
        e = list_next (e))
   {
       struct thread *t = list_entry (e, struct thread, sleep_elem);
-      if(t -> ticks >= ticks){
+      if(t -> ticks == ticks){
+        t -> ticks = 0;
         sema_up(&(t->sema_sleep));  
       }
   }
