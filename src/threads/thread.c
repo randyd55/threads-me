@@ -520,9 +520,10 @@ bool thread_list_less (const struct list_elem *a,
 {
   int priorityA = list_entry(a, struct thread, elem) ->priority;
   int priorityB = list_entry(b, struct thread, elem) ->priority;
-  if(priorityA >= priorityB)
-    return 0;
-  return 1;
+  if(priorityA > priorityB)
+    return 1;
+  return 0;
+
 }
 /* Completes a thread switch by activating the new thread's page
    tables, and, if the previous thread is dying, destroying it.
