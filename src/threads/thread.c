@@ -250,6 +250,7 @@ thread_unblock (struct thread *t)
   //printf("Checking priority\n");
   //printf("Current Thread priority before if statement: %d\n", cur->priority);
   //printf("Exiting unblock\n");
+  
   intr_set_level (old_level);
   
 }
@@ -351,6 +352,10 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+  if(new_priority < list_entry(list_begin(&ready_list),struct thread, elem)->priority){
+    thread_yield();
+  }
+
 }
 
 /* Returns the current thread's priority. */
