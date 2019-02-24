@@ -259,6 +259,7 @@ struct semaphore_elem
   {
     struct list_elem elem;              /* List element. */
     struct semaphore semaphore;         /* This semaphore. */
+    struct thread * t;
   };
 
 /* Initializes condition variable COND.  A condition variable
@@ -303,7 +304,9 @@ cond_wait (struct condition *cond, struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
   
   sema_init (&waiter.semaphore, 0);
-  list_push_back (&cond->waiters, &waiter.elem);
+  waiter.t = thread_current();
+  list_less_func *func = &thread_list_less;
+  list_insert_ordered (&cond->waiters,  &waiter.elem,cond_list_less,NULL);
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);
@@ -343,4 +346,14 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
+}
+
+bool cond_list_less (const struct list_elem *a,
+                             const struct list_elem *b,
+                             void *aux)
+{
+  struct thread* threadA = list_entry(a, struct semaphore_elem, elem) ->t;
+  struct thread* threadB = list_entry(b, struct semaphore_elem, elem) ->t;
+  return thread_list_less(&(threadA->elem),&(threadB->elem),NULL);
+
 }
