@@ -118,13 +118,14 @@ sema_up (struct semaphore *sema)
     struct thread *t=list_entry (list_pop_front (&sema->waiters),
                                 struct thread, elem);
     struct thread *cur = thread_current();
+    list_less_func *func = &thread_list_less;
     thread_unblock (t);
-    if((t->priority) > (cur->priority)){
-      thread_yield();
-    }
+
   }
   sema->value++;
   intr_set_level (old_level);
+  if(!intr_context ())
+  	thread_yield();
 }
 
 static void sema_test_helper (void *sema_);
