@@ -197,10 +197,14 @@ thread_create (const char *name, int priority,
   sf = alloc_frame (t, sizeof *sf);
   sf->eip = switch_entry;
   sf->ebp = 0;
-
+  
   /* Add to run queue. */
+  //printf("here\n");
   thread_unblock (t);
-
+  struct thread *cur = thread_current();
+  if((t->priority) > (cur->priority)){
+    thread_yield();
+  }
   return tid;
 }
 
@@ -238,9 +242,16 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_less_func *func = &thread_list_less;
+
+  //list_push_back (&ready_list, &t->elem);
+  list_insert_ordered(&ready_list, &t->elem, func, NULL);
   t->status = THREAD_READY;
+  //printf("Checking priority\n");
+  //printf("Current Thread priority before if statement: %d\n", cur->priority);
+  //printf("Exiting unblock\n");
   intr_set_level (old_level);
+  
 }
 
 /* Returns the name of the running thread. */
@@ -308,8 +319,11 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+  if (cur != idle_thread){
+    list_less_func *func = &thread_list_less;
+    list_insert_ordered(&ready_list, &cur->elem, func, NULL);
+    //list_push_back (&ready_list, &cur->elem);
+  }
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -391,7 +405,9 @@ idle (void *idle_started_ UNUSED)
 {
   struct semaphore *idle_started = idle_started_;
   idle_thread = thread_current ();
+  printf("its this one\n");
   sema_up (idle_started);
+  //printf("not gonna get here\n");
 
   for (;;) 
     {
@@ -467,6 +483,7 @@ init_thread (struct thread *t, const char *name, int priority)
 
   old_level = intr_disable();
   list_push_back (&all_list, &t->allelem);
+  
   intr_set_level(old_level);
 }
 
@@ -474,7 +491,7 @@ init_thread (struct thread *t, const char *name, int priority)
    returns a pointer to the frame's base. */
 static void *
 alloc_frame (struct thread *t, size_t size) 
-{
+{ 
   /* Stack data is always allocated in word-size units. */
   ASSERT (is_thread (t));
   ASSERT (size % sizeof (uint32_t) == 0);
@@ -497,9 +514,15 @@ next_thread_to_run (void)
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
 }
 //Fix this to take in list elements
-int thread_list_less(struct thread *a, struct thread *b)
+bool thread_list_less (const struct list_elem *a,
+                             const struct list_elem *b,
+                             void *aux)
 {
-  return a->priority - b->priority;
+  int priorityA = list_entry(a, struct thread, elem) ->priority;
+  int priorityB = list_entry(b, struct thread, elem) ->priority;
+  if(priorityA >= priorityB)
+    return 0;
+  return 1;
 }
 /* Completes a thread switch by activating the new thread's page
    tables, and, if the previous thread is dying, destroying it.
@@ -565,8 +588,9 @@ schedule (void)
   ASSERT (cur->status != THREAD_RUNNING);
   ASSERT (is_thread (next));
 
-  if (cur != next)
+  if (cur != next){
     prev = switch_threads (cur, next);
+  }
   thread_schedule_tail (prev);
 }
 

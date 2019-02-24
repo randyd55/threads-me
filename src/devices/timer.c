@@ -93,6 +93,7 @@ void
 timer_sleep (int64_t ticks) 
 {
   ASSERT (intr_get_level () == INTR_ON);
+  //printf("calls timer_sleep");
   struct thread *t = thread_current ();
   if(ticks <= 0)
   {
@@ -104,11 +105,11 @@ timer_sleep (int64_t ticks)
   
   old_level = intr_disable ();
   list_push_front(&sleep_list, &(t->sleep_elem));
-  intr_set_level (old_level);
+  //intr_set_level (old_level);
 
   sema_down(&(t->sema_sleep));
 
-  old_level = intr_disable ();
+  //old_level = intr_disable ();
   list_remove(&(t->sleep_elem));
   intr_set_level (old_level);
 
@@ -200,14 +201,6 @@ timer_interrupt (struct intr_frame *args UNUSED)
       }
   }
 
- //  while(!is_tail(node)){
- //  	//stuff
-	// struct thread *t = list_entry (node, struct thread, sleep_elem);
-	// if(t -> ticks >= ticks){
-	// 	sema_up(&(t->sema_sleep));	
-	// }
-	// node = list_next(node);
- //  }
   thread_tick ();
 }
 
