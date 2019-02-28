@@ -96,8 +96,11 @@ struct thread
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
+    struct list_elem don_elem;
+    
     struct semaphore sema_sleep;	/* Semaphore that locks sleeping threads */
     int64_t ticks;
+    struct list donation_list;   
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -105,7 +108,8 @@ struct thread
 #endif
 
     /* Owned by thread.c. */
-    unsigned magic;                     /* Detects stack overflow. */
+    unsigned magic;  
+                   /* Detects stack overflow. */
   };
 
 /* If false (default), use round-robin scheduler.

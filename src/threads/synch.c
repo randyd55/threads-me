@@ -203,9 +203,13 @@ lock_acquire (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
-  if(lock->holder != NULL && thread_current()->priority>lock->holder->priority)
+  if(lock->holder != NULL && thread_current()->priority > lock->holder->old_priority)
     {
-      lock->holder->priority=thread_current()->priority;
+      
+      list_less_func *func = &thread_list_less;
+      list_insert_ordered(&lock->holder->donation_list, &thread_current()->don_elem, func, NULL);
+      struct thread* t = list_entry(list_begin(&lock->holder->donation_list), struct thread, don_elem);
+      lock->holder->priority = t->priority;
       ready_list_sort();
     }
   sema_down (&lock->semaphore);
@@ -242,7 +246,29 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
-  lock->holder->priority=lock->holder->old_priority;
+  struct list_elem* e;
+  struct list* don_list=&thread_current()->donation_list;
+  struct thread* t3;
+  //printf("inside lock_release\n");
+  if(list_size(&(lock->holder->donation_list)) > 0){
+    struct thread* t = list_entry(list_begin(&lock->semaphore.waiters), struct thread, elem);
+    for(e=list_begin(don_list); e!=list_end(don_list); e=list_next(e)){
+      t3 = list_entry(e, struct thread, don_elem);
+      if(list_contains(&lock->semaphore.waiters,&t3->elem)){
+        list_remove(e);
+      }
+    }
+    if(list_size(&(lock->holder->donation_list)) != 0){
+      struct thread* t2 = list_entry(list_begin(&lock->holder->donation_list), struct thread, don_elem);
+      lock->holder->priority = t2->priority;
+    } else {
+      lock->holder->priority=lock->holder->old_priority;
+    }
+  }
+  else {
+      lock->holder->priority=lock->holder->old_priority;
+  }
+  //lock->holder->priority=lock->sem;
   ready_list_sort();
   lock->holder = NULL;
   sema_up (&lock->semaphore);
