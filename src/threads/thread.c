@@ -528,7 +528,7 @@ bool thread_list_less (const struct list_elem *a,
   return 0;
 
 }
-
+/* list less function for timer sleep, sorts by when a thread awakens */
 bool thread_tick_list_less(const struct list_elem *a, 
                                  const struct list_elem *b, 
                                  void *aux)
@@ -632,4 +632,33 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 void
 ready_list_sort(){
   list_sort(&ready_list,&thread_list_less,NULL);
+}
+/* Sorts a thread's donation list, updates the thread's priority, and if
+   necessary sort and update the blocking thread's donation list and 
+   priority */
+void
+donate_and_verify(struct thread* t){
+  struct thread* donor;
+  //Ensure thread passed isnt null
+  if( t!= NULL)
+  {
+    //Sort the thread's donation list
+    list_sort(&t->donation_list,&thread_list_less,NULL);
+    //If donation list is empty, return to default priority
+    //otherwise update with donor from front of list(highest priority)
+    if(!list_empty(&t->donation_list)){
+      donor = list_entry(list_begin(&t->donation_list), struct thread, don_elem);
+      t->priority=donor->priority;
+    }
+    else {
+      t->priority=t->old_priority;
+    }
+    //Check if the thread is being blocked by a thread, if so verify and update
+    //its donation list, this solves the problem of nested donation
+    if(t->blocked_by != NULL)
+    {
+      donate_and_verify(t->blocked_by);
+    }
+  }
+  return;
 }

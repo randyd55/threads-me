@@ -102,6 +102,7 @@ struct thread
     struct list_elem don_elem;    /* List element for the donation list */
     struct semaphore sema_sleep;  /* Semaphore that locks sleeping threads */
     struct semaphore *sema_block; /* Semaphore that is blocking this thread */
+    struct thread* blocked_by;
     int64_t ticks;                /* Int to keep track of the time*/
     struct list donation_list;    /* List of all threads donating to 
                                      this thread*/
@@ -156,5 +157,6 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
-void ready_list_sort(); /* Sorts the ready list*/
+void ready_list_sort(void); /* Sorts the ready list*/
+void donate_and_verify(struct thread* t); /* Handles a thread's donated priority */
 #endif /* threads/thread.h */

@@ -122,8 +122,6 @@ sema_up (struct semaphore *sema)
   {
     struct thread *t=list_entry (list_pop_front (&sema->waiters),
                                 struct thread, elem);
-    struct thread *cur = thread_current();
-    list_less_func *func = &thread_list_less;
     thread_unblock (t);
     t-> sema_block = NULL;
 
@@ -219,12 +217,13 @@ lock_acquire (struct lock *lock)
       list_insert_ordered(&lock->holder->donation_list, 
 					&thread_current()->don_elem, 
 					func, NULL);
+      //Updates current thread's with the holder of the lock
+      //to indicate which thread it's being blocked by
+      thread_current()->blocked_by=lock->holder;
+      //Ensure current thread's donation list is sorted and
+      //recursively update the thread it's blocked by's priority
+      donate_and_verify(thread_current());
 
-      struct thread* t = list_entry(list_begin(&lock->holder->donation_list),
-							struct thread,
-							don_elem);
-
-      lock->holder->priority = t->priority;
       //If the lock holder is currently blocked by a semaphore, then
       //said semaphore needs to update its waiter list order based
       // on the priority change.
@@ -233,6 +232,7 @@ lock_acquire (struct lock *lock)
       ready_list_sort();
     }
   sema_down (&lock->semaphore);
+  thread_current()->blocked_by=NULL;
   lock->holder = thread_current ();
 }
 
@@ -272,7 +272,6 @@ lock_release (struct lock *lock)
   //Here we release the donated priority if possible
   if(list_size(&(lock->holder->donation_list)) > 0)
   {
-    struct thread* t = list_entry(list_begin(&lock->semaphore.waiters), struct thread, elem);
     //Remove all threads in the donation list that are waiting for this lock
     for(e=list_begin(don_list); e!=list_end(don_list); e=list_next(e))
     {
@@ -365,7 +364,6 @@ cond_wait (struct condition *cond, struct lock *lock)
   
   sema_init (&waiter.semaphore, 0);
   waiter.t = thread_current();
-  list_less_func *func = &thread_list_less;
   list_insert_ordered (&cond->waiters,  &waiter.elem,cond_list_less,NULL);
   lock_release (lock);
   sema_down (&waiter.semaphore);
