@@ -17,14 +17,15 @@
 #error TIMER_FREQ <= 1000 recommended
 #endif
 
+//Keeps track of currently sleeping threads
+struct list sleep_list;
+
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
 
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
 static unsigned loops_per_tick;
-struct list sleep_list;
-int check=0;
 static intr_handler_func timer_interrupt;
 static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
