@@ -67,10 +67,11 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      //Waiters list is sorted by priority so the highest priority thread is woken in
-      //sema_up.
+      //Waiters list is sorted by priority so the highest priority thread 
+      //is woken in sema_up.
       list_less_func *func = &thread_list_less;
-      list_insert_ordered(&sema->waiters, &thread_current ()->elem, func, NULL);
+      list_insert_ordered(&sema->waiters, &thread_current ()->elem, 
+                          func, NULL);
       thread_current ()-> sema_block = sema;
       thread_block ();
     }
@@ -281,10 +282,12 @@ lock_release (struct lock *lock)
         list_remove(e);
       }
     }
-    //If we still have threads trying to donate to this thread, update priority accordingly
+    //If we still have threads trying to donate to this thread, 
+    //update priority accordingly
     if(list_size(&(lock->holder->donation_list)) != 0)
     {
-      struct thread* t2 = list_entry(list_begin(&lock->holder->donation_list), struct thread, don_elem);
+      struct thread* t2 = list_entry(list_begin(&lock->holder->donation_list),
+                                     struct thread, don_elem);
       lock->holder->priority = t2->priority;
     } 
     //Otherwise, revert to the original priority

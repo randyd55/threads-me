@@ -647,14 +647,15 @@ donate_and_verify(struct thread* t){
     //If donation list is empty, return to default priority
     //otherwise update with donor from front of list(highest priority)
     if(!list_empty(&t->donation_list)){
-      donor = list_entry(list_begin(&t->donation_list), struct thread, don_elem);
+      donor = list_entry(list_begin(&t->donation_list), 
+                         struct thread, don_elem);
       t->priority=donor->priority;
     }
     else {
       t->priority=t->old_priority;
     }
-    //Check if the thread is being blocked by a thread, if so verify and update
-    //its donation list, this solves the problem of nested donation
+    //Check if the thread is being blocked by a thread, if so verify and 
+    //update its donation list, this solves the problem of nested donation
     if(t->blocked_by != NULL)
     {
       donate_and_verify(t->blocked_by);
