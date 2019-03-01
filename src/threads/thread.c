@@ -533,8 +533,8 @@ bool thread_tick_list_less(const struct list_elem *a,
                                  const struct list_elem *b, 
                                  void *aux)
 {
-  int ticksA = list_entry(a, struct thread, elem) ->ticks;
-  int ticksB = list_entry(b, struct thread, elem) ->ticks;
+  int64_t ticksA = list_entry(a, struct thread, sleep_elem) ->ticks;
+  int64_t ticksB = list_entry(b, struct thread, sleep_elem) ->ticks;
   if(ticksA < ticksB)
     return 1;
   return 0;
