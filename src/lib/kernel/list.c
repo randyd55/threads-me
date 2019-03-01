@@ -522,7 +522,7 @@ list_min (struct list *list, list_less_func *less, void *aux)
   return min;
 }
 
-
+//Returns 1 if the list contains the element, 0 otherwise.
 bool
 list_contains (struct list *list, struct list_elem *elem)
 {

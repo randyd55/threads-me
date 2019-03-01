@@ -100,7 +100,7 @@ struct thread
     /* Added elements by us */
     struct list_elem sleep_elem;  /* List element for sleep_list */
     struct list_elem don_elem;    /* List element for the donation list */
-    struct semaphore sema_sleep;	/* Semaphore that locks sleeping threads */
+    struct semaphore sema_sleep;  /* Semaphore that locks sleeping threads */
     struct semaphore *sema_block; /* Semaphore that is blocking this thread */
     int64_t ticks;                /* Int to keep track of the time*/
     struct list donation_list;    /* List of all threads donating to 

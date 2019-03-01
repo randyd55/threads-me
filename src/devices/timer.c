@@ -94,6 +94,7 @@ timer_sleep (int64_t ticks)
 {
   ASSERT (intr_get_level () == INTR_ON);
   struct thread *t = thread_current ();
+  //No need to sleep
   if(ticks <= 0)
   {
     return;
@@ -105,6 +106,8 @@ timer_sleep (int64_t ticks)
   old_level = intr_disable ();
   list_less_func *func = &thread_tick_list_less;
   list_insert_ordered(&sleep_list, &t->sleep_elem, func, NULL);
+  //Removes thread from ready_queue, will be put back on in timer_interrupt
+  //after the correct number of ticks.
   sema_down(&(t->sema_sleep));
   list_remove(&(t->sleep_elem));
   intr_set_level (old_level);
@@ -184,7 +187,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
   struct list_elem *e;
 
   ASSERT (intr_get_level () == INTR_OFF);
-  
+  //Loops through threads and wakes up any that have slept enough time
   for (e = list_begin (&sleep_list); e != list_end (&sleep_list);
        e = list_next (e))
   {
@@ -193,6 +196,8 @@ timer_interrupt (struct intr_frame *args UNUSED)
       {
         sema_up(&(t->sema_sleep));  
       }
+      //Since sleep_list is sorted by sleeping time, we can break once
+      //we find a thread that does not need to be woken.
       else 
       {
         break;
