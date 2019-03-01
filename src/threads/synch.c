@@ -68,8 +68,8 @@ sema_down (struct semaphore *sema)
   while (sema->value == 0) 
     {
       list_less_func *func = &thread_list_less;
-      //list_push_back (&sema->waiters, &thread_current ()->elem);
       list_insert_ordered(&sema->waiters, &thread_current ()->elem, func, NULL);
+      thread_current()-> sema_block = sema;
       thread_block ();
     }
   sema->value--;
@@ -120,6 +120,7 @@ sema_up (struct semaphore *sema)
     struct thread *cur = thread_current();
     list_less_func *func = &thread_list_less;
     thread_unblock (t);
+    t-> sema_block = NULL;
 
   }
   sema->value++;
@@ -208,8 +209,11 @@ lock_acquire (struct lock *lock)
       
       list_less_func *func = &thread_list_less;
       list_insert_ordered(&lock->holder->donation_list, &thread_current()->don_elem, func, NULL);
+
       struct thread* t = list_entry(list_begin(&lock->holder->donation_list), struct thread, don_elem);
       lock->holder->priority = t->priority;
+      if(lock->holder->sema_block != NULL)
+        list_sort(&lock->holder->sema_block->waiters,func,NULL);
       ready_list_sort();
     }
   sema_down (&lock->semaphore);

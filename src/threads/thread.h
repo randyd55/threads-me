@@ -99,6 +99,7 @@ struct thread
     struct list_elem don_elem;
     
     struct semaphore sema_sleep;	/* Semaphore that locks sleeping threads */
+    struct semaphore *sema_block;
     int64_t ticks;
     struct list donation_list;   
 
@@ -149,5 +150,5 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
-
+void ready_list_sort();
 #endif /* threads/thread.h */
