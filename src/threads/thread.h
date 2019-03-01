@@ -91,17 +91,20 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     int old_priority;
-    struct list_elem allelem;           /* List element for all threads list. */
-    struct list_elem sleep_elem;	/*list element for sleep_list*/
+    struct list_elem allelem;           /* List element for all threads list.*/
+   
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-    struct list_elem don_elem;
-    
+
+    /* Added elements by us */
+    struct list_elem sleep_elem;  /* List element for sleep_list */
+    struct list_elem don_elem;    /* List element for the donation list */
     struct semaphore sema_sleep;	/* Semaphore that locks sleeping threads */
-    struct semaphore *sema_block;
-    int64_t ticks;
-    struct list donation_list;   
+    struct semaphore *sema_block; /* Semaphore that is blocking this thread */
+    int64_t ticks;                /* Int to keep track of the time*/
+    struct list donation_list;    /* List of all threads donating to 
+                                     this thread*/
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -137,7 +140,10 @@ const char *thread_name (void);
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
 
-bool thread_list_less(const struct list_elem *a, const struct list_elem *b, void *aux);
+bool thread_list_less(const struct list_elem *a, 
+                            const struct list_elem *b, void *aux);
+bool thread_tick_list_less(const struct list_elem *a, 
+                                 const struct list_elem *b, void *aux);
 
 /* Performs some operation on thread t, given auxiliary data AUX. */
 typedef void thread_action_func (struct thread *t, void *aux);
@@ -150,5 +156,5 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
-void ready_list_sort();
+void ready_list_sort(); /* Sorts the ready list*/
 #endif /* threads/thread.h */

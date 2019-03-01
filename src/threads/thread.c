@@ -199,7 +199,6 @@ thread_create (const char *name, int priority,
   sf->ebp = 0;
   
   /* Add to run queue. */
-  //printf("here\n");
   thread_unblock (t);
   struct thread *cur = thread_current();
   if((t->priority) > (cur->priority)){
@@ -243,14 +242,8 @@ thread_unblock (struct thread *t)
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
   list_less_func *func = &thread_list_less;
-
-  //list_push_back (&ready_list, &t->elem);
   list_insert_ordered(&ready_list, &t->elem, func, NULL);
   t->status = THREAD_READY;
-  //printf("Checking priority\n");
-  //printf("Current Thread priority before if statement: %d\n", cur->priority);
-  //printf("Exiting unblock\n");
-  
   intr_set_level (old_level);
   
 }
@@ -323,7 +316,6 @@ thread_yield (void)
   if (cur != idle_thread){
     list_less_func *func = &thread_list_less;
     list_insert_ordered(&ready_list, &cur->elem, func, NULL);
-    //list_push_back (&ready_list, &cur->elem);
   }
   cur->status = THREAD_READY;
   schedule ();
@@ -351,11 +343,15 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  if(list_empty(&thread_current()->donation_list))
+  /*We should update its priority only when 0 threads are donating to it */
+  if(list_empty(&thread_current()->donation_list))   
     thread_current ()->priority = new_priority;
   thread_current () ->old_priority = new_priority;
-  if(new_priority < list_entry(list_begin(&ready_list),struct thread, elem)->priority){
-    thread_yield();
+  /* Yield this thread immediately if its new priority is less than one in 
+     the ready list*/
+  if(new_priority < 
+    list_entry(list_begin(&ready_list),struct thread, elem)->priority){
+      thread_yield();
   }
 
 }
@@ -412,9 +408,7 @@ idle (void *idle_started_ UNUSED)
 {
   struct semaphore *idle_started = idle_started_;
   idle_thread = thread_current ();
-  printf("its this one\n");
   sema_up (idle_started);
-  //printf("not gonna get here\n");
 
   for (;;) 
     {
@@ -481,14 +475,14 @@ init_thread (struct thread *t, const char *name, int priority)
   ASSERT (PRI_MIN <= priority && priority <= PRI_MAX);
   ASSERT (name != NULL);
   memset (t, 0, sizeof *t);
-  list_init(&(t->donation_list));
+  list_init(&(t->donation_list));           
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->old_priority=priority;
   t->magic = THREAD_MAGIC;
-  t->sema_block = NULL;
+  t->sema_block = NULL;                     
   old_level = intr_disable();
   list_push_back (&all_list, &t->allelem);
   
@@ -521,7 +515,8 @@ next_thread_to_run (void)
   else
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
 }
-//Fix this to take in list elements
+
+/* list_less function for thread priority */
 bool thread_list_less (const struct list_elem *a,
                              const struct list_elem *b,
                              void *aux)
@@ -532,6 +527,17 @@ bool thread_list_less (const struct list_elem *a,
     return 1;
   return 0;
 
+}
+
+bool thread_tick_list_less(const struct list_elem *a, 
+                                 const struct list_elem *b, 
+                                 void *aux)
+{
+  int ticksA = list_entry(a, struct thread, elem) ->ticks;
+  int ticksB = list_entry(b, struct thread, elem) ->ticks;
+  if(ticksA < ticksB)
+    return 1;
+  return 0;
 }
 /* Completes a thread switch by activating the new thread's page
    tables, and, if the previous thread is dying, destroying it.
@@ -621,6 +627,8 @@ allocate_tid (void)
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
+/* Sorts the ready list, typically called when priorities are changed and
+   something outside of thread.c needs to resort the ready list */
 void
 ready_list_sort(){
   list_sort(&ready_list,&thread_list_less,NULL);
